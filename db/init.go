@@ -6,17 +6,21 @@ import (
 	"gitlab.com/my0sot1s/pguser/pb"
 )
 
+const (
+	tblUser = "user"
+)
+
 // CreateDb func
 func (d *DB) MigrationDb() error {
-	err := d.engine.Migrator().AutoMigrate(&pb.User{})
+	err := d.engine.Table(tblUser).Migrator().AutoMigrate(&pb.User{})
 	if err != nil {
 		log.Print(err)
 	}
-	err = d.engine.Migrator().AutoMigrate(&pb.Partner{})
+	err = d.engine.Table("partner").Migrator().AutoMigrate(&pb.Partner{})
 	if err != nil {
 		log.Print(err)
 	}
-	err = d.engine.Migrator().AutoMigrate(&pb.ProductType{})
+	err = d.engine.Table("product_type").Migrator().AutoMigrate(&pb.ProductType{})
 	if err != nil {
 		log.Print(err)
 	}

@@ -142,8 +142,8 @@ message ProductType {
 	// @inject_tag: gorm:"-"
 	Category category = 37;
 	string description = 4;
-	// // @inject_tag: gorm:"text[]"
-	// repeated string images = 5;
+	// @inject_tag: gorm:"text[]"
+	repeated string images = 5;
 	string state = 6;
 	enum State {
 		active = 0;
@@ -168,7 +168,7 @@ message ProductType {
 	string source =32;
 	int64 created = 33;
 	int64 updated_at = 34;
-	// @inject_tag: gorm:"json"
+	// @inject_tag: gorm:"text[]"
 	map<string, string> attribute_values = 35;
 	string partner_id = 38;
 	int64 alt_id =39;

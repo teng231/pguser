@@ -12,6 +12,7 @@ import (
 	"github.com/caarlos0/env"
 	"github.com/urfave/cli/v2"
 	"gitlab.com/my0sot1s/pguser/db"
+	"gitlab.com/my0sot1s/pguser/pb"
 )
 
 var cf Configs
@@ -50,11 +51,48 @@ func migrationDb(ctx *cli.Context) error {
 
 func startApp(ctx *cli.Context) error {
 	log.Print("STart app")
-	user, err := makeHandler(cf)
+	h, err := makeHandler(cf)
 	if err != nil {
 		panic(err)
 	}
-	if err := GRPCServe(cf.GrpcPort, user); err != nil {
+	// data, err := h.Db.ReadUser(&pb.User{Id: "usrbqj4l1920hsad3tp6n17g"})
+	// log.Print(data, err)
+
+	// u := &pb.User{Fullname: "teng1"}
+	// err = h.Db.UpdateUser(u, &pb.User{Id: "usrbru30a6lss08bj5adn5g1"})
+	// log.Print(err, u)
+
+	// u := &pb.User{Id: "usrbxxx"}
+	// err = h.Db.InsertUser(u)
+	// log.Print(err, u)
+
+	// log.Print(h.Db.IsUserExisted(&pb.User{Id: "usrbxxx2"}))
+
+	// users := make([]*pb.User, 0)
+	// users, err = h.Db.ListUsers(&pb.UserRequest{Limit: 2, Username: "0983369399", Ids: []string{"usrbcg6tsp20hsad3si9bm0"}})
+	// log.Print(err, users)
+
+	// data, err := h.Db.CountUsers(&pb.UserRequest{Id: "usrblk8snh20hsad3su4eo0"})
+	// log.Print(data, err)
+
+	// users := make([]*pb.User, 0)
+	// users, err = h.Db.ListUsers(&pb.UserRequest{Limit: 2, Username: "0983369399", Ids: []string{"usrbcg6tsp20hsad3si9bm0"}})
+	// log.Print(err, users)
+
+	// data := make(chan *pb.User, 100)
+	// wg := &sync.WaitGroup{}
+	// go func() {
+	// 	for {
+	// 		x := <-data
+	// 		log.Print(x)
+	// 		wg.Done()
+	// 	}
+	// }()
+	// h.Db.ScanUserTable(&pb.User{}, data, wg)
+	// wg.Wait()
+	// log.Print(h.Db.TransUserCreate(&pb.User{Id: "1", Username: "1"}, &pb.User{Id: "2", Username: "2"}))
+	log.Print(h.Db.TransUserCreate(&pb.User{Id: "1", Username: "1"}, &pb.User{Id: "2", Username: "2"}))
+	if err := GRPCServe(cf.GrpcPort, h); err != nil {
 		return err
 	}
 	return nil
@@ -68,7 +106,7 @@ func appRoot() error {
 	}
 	app.Commands = []*cli.Command{
 		{Name: "start", Usage: "start up running app", Action: startApp},
-		{Name: "createDb", Usage: "create table in db with proto", Action: migrationDb},
+		{Name: "migrationDb", Usage: "create table in db with proto", Action: migrationDb},
 	}
 
 	return app.Run(os.Args)

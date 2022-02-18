@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net"
+	"sync"
 
 	"gitlab.com/my0sot1s/pguser/db"
 	"gitlab.com/my0sot1s/pguser/pb"
@@ -15,12 +16,14 @@ func init() {
 }
 
 type IDatabase interface {
-	ReadUser(*pb.UserRequest) (*pb.User, error) // *pb.User
+	ReadUser(*pb.User) (*pb.User, error) // *pb.User
 	IsUserExisted(u *pb.User) bool
 	InsertUser(*pb.User) error
 	UpdateUser(*pb.User, *pb.User) error
 	ListUsers(rq *pb.UserRequest) ([]*pb.User, error)
 	CountUsers(rq *pb.UserRequest) (int64, error)
+	ScanUserTable(cond *pb.User, buf chan *pb.User, wg *sync.WaitGroup) error
+	TransUserCreate(users ...*pb.User) (int64, error)
 }
 
 type User struct {

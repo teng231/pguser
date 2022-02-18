@@ -22,7 +22,6 @@ type DB struct {
 
 // ConnectDb expose ...
 func (d *DB) ConnectDb(sqlPath, dbName string) error {
-	log.Print(sqlPath)
 	db, err := gorm.Open(postgres.New(
 		postgres.Config{
 			DSN:                  sqlPath,
@@ -51,13 +50,12 @@ func (d *DB) ConnectDb(sqlPath, dbName string) error {
 
 	// // SetMaxOpenConns sets the maximum number of open connections to the database.
 	// sqlDb.SetMaxOpenConns(100)
-
 	d.engine = db
 	return nil
 }
 
 func (d *DB) listUsersQuery(rq *pb.UserRequest) *gorm.DB {
-	ss := d.engine
+	ss := d.engine.Table(tblUser)
 	if rq.GetUsername() != "" {
 		ss.Where("username = ?", rq.GetUsername())
 	}
@@ -82,7 +80,7 @@ func (d *DB) listUsersQuery(rq *pb.UserRequest) *gorm.DB {
 	return ss
 }
 
-// ListUsers ...
+// da check day la cau truc dung
 func (d *DB) ListUsers(rq *pb.UserRequest) ([]*pb.User, error) {
 	ss := d.listUsersQuery(rq)
 	if rq.GetLimit() != 0 {
@@ -99,39 +97,40 @@ func (d *DB) ListUsers(rq *pb.UserRequest) ([]*pb.User, error) {
 	return users, nil
 }
 
+// da check day la cau truc dung
 func (d *DB) ScanUserTable(cond *pb.User, buf chan *pb.User, wg *sync.WaitGroup) error {
-	rows, err := d.engine.Model(cond).Rows()
+	rows, err := d.engine.Table(tblUser).Rows()
 	if err != nil {
 		return err
 	}
 	defer rows.Close()
 	wg.Add(1)
 	defer wg.Done()
+	bean := new(pb.User)
 	for rows.Next() {
-		user := &pb.User{}
 		// ScanRows is a method of `gorm.DB`, it can be used to scan a row into a struct
-		err := d.engine.ScanRows(rows, user)
+		err := d.engine.ScanRows(rows, bean)
 		if err != nil {
 			log.Print(err)
 			continue
 		}
-		buf <- user
+		buf <- bean
 		wg.Add(1)
 	}
 	log.Print("xxxx")
 	return nil
 }
 
+// da check day la cau truc dung
 func (d *DB) IsUserExisted(u *pb.User) bool {
-	affected := d.engine.Take(u).RowsAffected
-	if affected == 0 {
-		return false
-	}
-	return true
+	has := false
+	d.engine.Table(tblUser).Select("count(id)").Where(u).Take(&has)
+	return has
 }
 
+// da check day la cau truc dung
 func (d *DB) InsertUser(u *pb.User) error {
-	tx := d.engine.Create(u)
+	tx := d.engine.Table(tblUser).Create(u)
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -141,8 +140,10 @@ func (d *DB) InsertUser(u *pb.User) error {
 	return nil
 }
 
+// da check day la cau truc dung
 func (d *DB) UpdateUser(updator, selector *pb.User) error {
-	tx := d.engine.Model(selector).Updates(updator)
+
+	tx := d.engine.Table(tblUser).Model(selector).Updates(updator)
 	if tx.Error != nil {
 		return tx.Error
 	}
@@ -152,32 +153,42 @@ func (d *DB) UpdateUser(updator, selector *pb.User) error {
 	return nil
 }
 
-func (d *DB) ReadUser(req *pb.UserRequest) (*pb.User, error) {
-	u := &pb.User{}
-	tx := d.engine.Take(u)
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
-	if tx.RowsAffected == 0 {
+// da check day la cau truc dung
+func (d *DB) ReadUser(u *pb.User) (*pb.User, error) {
+	err := d.engine.Table(tblUser).Where(u).Take(u).Error
+	if err == gorm.ErrRecordNotFound {
 		return nil, errors.New("no affected")
+	}
+	if err != nil {
+		return nil, err
 	}
 	return u, nil
 }
 
+// da check day la cau truc dung
 func (d *DB) CountUsers(rq *pb.UserRequest) (int64, error) {
 	ss := d.listUsersQuery(rq)
 	var c int64
-	err := ss.Count(&c).Error
-	if err != nil {
+	if err := ss.Count(&c).Error; err != nil {
 		return 0, err
 	}
 	return c, nil
 }
 
+// da check day la cau truc dung
 func (d *DB) TransUserCreate(users ...*pb.User) (int64, error) {
 	tx := d.engine.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+	if err := tx.Error; err != nil {
+		return 0, err
+	}
+
 	for _, item := range users {
-		if err := tx.Create(item).Error; err != nil {
+		if err := tx.Table(tblUser).Create(item).Error; err != nil {
 			log.Print(err)
 			tx.Rollback()
 			return 0, err
