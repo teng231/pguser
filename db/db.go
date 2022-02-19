@@ -124,7 +124,7 @@ func (d *DB) ScanUserTable(cond *pb.User, buf chan *pb.User, wg *sync.WaitGroup)
 // da check day la cau truc dung
 func (d *DB) IsUserExisted(u *pb.User) bool {
 	has := false
-	d.engine.Table(tblUser).Select("count(id)").Where(u).Take(&has)
+	d.engine.Table(tblUser).Select("count(id) > 0").Where(u).Take(&has)
 	return has
 }
 
